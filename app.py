@@ -2,9 +2,25 @@ import streamlit as st
 import requests
 import folium
 import math
+import textwrap
 from datetime import datetime, timedelta
 from streamlit_folium import st_folium
 from streamlit_js_eval import streamlit_js_eval
+
+
+# ============================================================
+# HTML RENDER HELPER
+# ============================================================
+
+def render_html(html):
+    """
+    Safely render multi-line HTML without indentation
+    accidentally turning it into a Markdown code block.
+    """
+    st.markdown(
+        textwrap.dedent(html).strip(),
+        unsafe_allow_html=True
+    )
 
 
 # ============================================================
@@ -41,7 +57,7 @@ ROUTE_POINTS = 8
 # CSS
 # ============================================================
 
-st.markdown(
+render_html(
     """
     <style>
 
@@ -226,8 +242,7 @@ st.markdown(
     }
 
     </style>
-    """,
-    unsafe_allow_html=True,
+    """
 )
 
 
@@ -420,43 +435,33 @@ def calculate_risk(
         weather_code = 0
 
     if weather_code in [95, 96, 99]:
-
         return "🔴 High Risk"
 
     if temperature >= 40 or feels_like >= 42:
-
         return "🔴 High Risk"
 
     if rain_probability >= 85:
-
         return "🔴 High Risk"
 
     if wind >= 50:
-
         return "🔴 High Risk"
 
     if temperature >= 35:
-
         return "🟡 Caution"
 
     if feels_like >= 38:
-
         return "🟡 Caution"
 
     if rain_probability >= 60:
-
         return "🟡 Caution"
 
     if wind >= 30:
-
         return "🟡 Caution"
 
     if uv >= 8:
-
         return "🟡 Caution"
 
     if rain_probability >= 30:
-
         return "🟡 Caution"
 
     return "🟢 Good"
@@ -600,9 +605,11 @@ def send_browser_notification(
         try {{
 
             if (!("Notification" in window)) {{
+
                 return {{
                     status: "unsupported"
                 }};
+
             }}
 
             let permission = Notification.permission;
@@ -657,7 +664,10 @@ def send_browser_notification(
         if isinstance(result, dict):
 
             st.session_state.notification_permission = (
-                result.get("status", "unknown")
+                result.get(
+                    "status",
+                    "unknown"
+                )
             )
 
     except Exception:
@@ -896,19 +906,38 @@ def get_route(
 
         return {
             "distance_m":
-                float(route.get("distance", 0)),
+                float(
+                    route.get(
+                        "distance",
+                        0
+                    )
+                ),
 
             "duration_s":
-                float(route.get("duration", 0)),
+                float(
+                    route.get(
+                        "duration",
+                        0
+                    )
+                ),
 
             "geometry":
-                route.get("geometry", {}),
+                route.get(
+                    "geometry",
+                    {}
+                ),
 
             "legs":
-                route.get("legs", []),
+                route.get(
+                    "legs",
+                    []
+                ),
 
             "weight_name":
-                route.get("weight_name", ""),
+                route.get(
+                    "weight_name",
+                    ""
+                ),
         }
 
     except Exception:
@@ -931,8 +960,13 @@ def haversine_distance(
     p1 = math.radians(lat1)
     p2 = math.radians(lat2)
 
-    dp = math.radians(lat2 - lat1)
-    dl = math.radians(lon2 - lon1)
+    dp = math.radians(
+        lat2 - lat1
+    )
+
+    dl = math.radians(
+        lon2 - lon1
+    )
 
     a = (
         math.sin(dp / 2) ** 2
@@ -972,20 +1006,26 @@ def sample_route_points(
                 "latitude": coordinate[1],
                 "longitude": coordinate[0],
             }
-            for i, coordinate in enumerate(coordinates)
+
+            for i, coordinate
+            in enumerate(coordinates)
         ]
 
     points = []
 
-    step = (total - 1) / (
-        number_of_points - 1
+    step = (
+        (total - 1)
+        /
+        (number_of_points - 1)
     )
 
     used_indices = set()
 
     for i in range(number_of_points):
 
-        position = round(i * step)
+        position = round(
+            i * step
+        )
 
         if position in used_indices:
             continue
@@ -1007,7 +1047,10 @@ def sample_route_points(
 # REVERSE GEOCODING
 # ============================================================
 
-@st.cache_data(ttl=86400, show_spinner=False)
+@st.cache_data(
+    ttl=86400,
+    show_spinner=False
+)
 def reverse_geocode_route(
     latitude,
     longitude
@@ -1128,7 +1171,6 @@ def build_route_locations(
                 lon
             )
 
-            # Approximate distance from origin.
             distance = haversine_distance(
                 start_lat,
                 start_lon,
@@ -1136,19 +1178,21 @@ def build_route_locations(
                 lon
             )
 
-            # Prevent an occasional geocoding/routing
-            # coordinate from producing a value larger
-            # than the route itself.
             distance = min(
                 distance,
                 total_distance
             )
 
         route_locations.append({
+
             "place": place,
+
             "latitude": lat,
+
             "longitude": lon,
+
             "distance_km": distance,
+
         })
 
     # Remove consecutive duplicate names
@@ -1185,16 +1229,21 @@ def find_nearest_hour(
     best_index = 0
     best_difference = None
 
-    for i, value in enumerate(hourly_times):
+    for i, value in enumerate(
+        hourly_times
+    ):
 
-        current_time = parse_datetime(value)
+        current_time = parse_datetime(
+            value
+        )
 
         if current_time is None:
             continue
 
         difference = abs(
             (
-                current_time -
+                current_time
+                -
                 target_datetime
             ).total_seconds()
         )
@@ -1223,8 +1272,6 @@ def get_route_weather(
     if not route_locations:
         return []
 
-    # We use the weather API's timezone-aware
-    # current timestamp where possible.
     first_weather = get_weather(
         route_locations[0]["latitude"],
         route_locations[0]["longitude"]
@@ -1249,9 +1296,9 @@ def get_route_weather(
     if start_time is None:
         start_time = datetime.now()
 
-    total_distance = route_locations[-1][
-        "distance_km"
-    ]
+    total_distance = (
+        route_locations[-1]["distance_km"]
+    )
 
     if total_distance <= 0:
         total_distance = 1
@@ -1262,7 +1309,8 @@ def get_route_weather(
 
         progress = (
             location["distance_km"]
-            / total_distance
+            /
+            total_distance
         )
 
         progress = max(
@@ -1272,12 +1320,14 @@ def get_route_weather(
 
         estimated_seconds = (
             route_duration_seconds
-            * progress
+            *
+            progress
         )
 
         estimated_time = (
             start_time
-            + timedelta(
+            +
+            timedelta(
                 seconds=estimated_seconds
             )
         )
@@ -1326,7 +1376,9 @@ def get_route_weather(
                 hour_index < len(values)
             ):
 
-                return values[hour_index]
+                return values[
+                    hour_index
+                ]
 
             return fallback
 
@@ -1410,37 +1462,59 @@ def get_route_weather(
                 estimated_time,
 
             "temperature":
-                float(temperature or 0),
+                float(
+                    temperature or 0
+                ),
 
             "feels_like":
-                float(feels_like or 0),
+                float(
+                    feels_like or 0
+                ),
 
             "rain_probability":
-                float(rain_probability or 0),
+                float(
+                    rain_probability or 0
+                ),
 
             "precipitation":
-                float(precipitation or 0),
+                float(
+                    precipitation or 0
+                ),
 
             "rain":
-                float(rain or 0),
+                float(
+                    rain or 0
+                ),
 
             "wind":
-                float(wind or 0),
+                float(
+                    wind or 0
+                ),
 
             "humidity":
-                float(humidity or 0),
+                float(
+                    humidity or 0
+                ),
 
             "uv":
-                float(uv or 0),
+                float(
+                    uv or 0
+                ),
 
             "weather_code":
-                int(code or 0),
+                int(
+                    code or 0
+                ),
 
             "condition":
-                weather_description(code),
+                weather_description(
+                    code
+                ),
 
             "icon":
-                weather_icon(code),
+                weather_icon(
+                    code
+                ),
 
             "risk":
                 risk,
@@ -1460,21 +1534,27 @@ def analyze_route_weather(
     if not route_weather:
 
         return {
+
             "risk": "⚪ Unknown",
+
             "message":
                 "Route weather data is unavailable.",
+
             "advice": [
                 "Check the route again before travelling."
             ],
+
         }
 
     high_risk = [
-        p for p in route_weather
+        p
+        for p in route_weather
         if "🔴" in p["risk"]
     ]
 
     caution = [
-        p for p in route_weather
+        p
+        for p in route_weather
         if "🟡" in p["risk"]
     ]
 
@@ -1490,23 +1570,37 @@ def analyze_route_weather(
         )
 
         advice = [
-            f"Be especially careful near {worst['place']}.",
+
+            f"Be especially careful near "
+            f"{worst['place']}.",
+
             (
                 f"Forecast there: "
                 f"{worst['condition']}, "
-                f"rain {worst['rain_probability']:.0f}%, "
-                f"wind {worst['wind']:.0f} km/h."
+                f"rain "
+                f"{worst['rain_probability']:.0f}%, "
+                f"wind "
+                f"{worst['wind']:.0f} km/h."
             ),
+
             "Check the forecast immediately before departure.",
+
             "Consider delaying the journey if severe conditions develop.",
+
         ]
 
         return {
-            "risk": "🔴 High Risk",
+
+            "risk":
+                "🔴 High Risk",
+
             "message":
                 "Weather conditions may become unsafe "
                 "during part of your journey.",
-            "advice": advice,
+
+            "advice":
+                advice,
+
         }
 
     if caution:
@@ -1521,29 +1615,50 @@ def analyze_route_weather(
         )
 
         return {
-            "risk": "🟡 Moderate Risk",
+
+            "risk":
+                "🟡 Moderate Risk",
+
             "message":
                 "Most of the route looks manageable, "
                 "but some sections need extra caution.",
+
             "advice": [
-                f"Take extra care around {worst['place']}.",
+
+                f"Take extra care around "
+                f"{worst['place']}.",
+
                 "Carry water.",
+
                 "Keep rain protection available.",
+
                 "Allow some extra travel time.",
+
             ],
+
         }
 
     return {
-        "risk": "🟢 Good",
+
+        "risk":
+            "🟢 Good",
+
         "message":
             "Weather conditions look generally "
             "favorable across the route.",
+
         "advice": [
+
             "Carry drinking water.",
+
             "Use sunscreen during daytime.",
+
             "Wear comfortable clothing.",
+
             "Check the weather again before departure.",
+
         ],
+
     }
 
 
@@ -1636,7 +1751,7 @@ def activity_advice(
 # HEADER
 # ============================================================
 
-st.markdown(
+render_html(
     """
     <h1 style="text-align:center;">
         🌦️ AI Personal Weather Advisor
@@ -1646,8 +1761,7 @@ st.markdown(
         Weather intelligence + personal outdoor advice
         + route weather analysis
     </div>
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 
@@ -1655,12 +1769,15 @@ st.markdown(
 # NOTIFICATIONS
 # ============================================================
 
-st.markdown(
-    '<div class="section-title">🔔 Weather Notifications</div>',
-    unsafe_allow_html=True
+render_html(
+    """
+    <div class="section-title">
+        🔔 Weather Notifications
+    </div>
+    """
 )
 
-st.markdown(
+render_html(
     """
     <div class="notification-box">
 
@@ -1679,8 +1796,7 @@ st.markdown(
         </p>
 
     </div>
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 notification_col1, notification_col2 = st.columns(2)
@@ -1744,9 +1860,12 @@ else:
 # LOCATION
 # ============================================================
 
-st.markdown(
-    '<div class="section-title">📍 Location</div>',
-    unsafe_allow_html=True
+render_html(
+    """
+    <div class="section-title">
+        📍 Location
+    </div>
+    """
 )
 
 location_col1, location_col2, location_col3 = st.columns(
@@ -2122,16 +2241,17 @@ if st.session_state.notifications_enabled:
 # LOCATION HEADER
 # ============================================================
 
-st.markdown(
+render_html(
     f"""
-    <h2>📍 {st.session_state.location_name}</h2>
+    <h2>
+        📍 {st.session_state.location_name}
+    </h2>
 
     <p class="small-text">
         Coordinates:
         {latitude:.4f}, {longitude:.4f}
     </p>
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 
@@ -2139,7 +2259,7 @@ st.markdown(
 # WEATHER HERO
 # ============================================================
 
-st.markdown(
+render_html(
     f"""
     <div class="weather-card">
 
@@ -2160,8 +2280,7 @@ st.markdown(
         </p>
 
     </div>
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 
@@ -2189,13 +2308,13 @@ elif "🟡" in overall_risk:
 elif "🟢" in overall_risk:
     risk_html = "good-box"
 
-st.markdown(
+render_html(
     f"""
     <div class="{risk_html}">
-        <b>Overall Weather:</b> {overall_risk}
+        <b>Overall Weather:</b>
+        {overall_risk}
     </div>
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 
@@ -2203,18 +2322,33 @@ st.markdown(
 # CURRENT CONDITIONS
 # ============================================================
 
-st.markdown(
-    '<div class="section-title">🌦️ Current Conditions</div>',
-    unsafe_allow_html=True
+render_html(
+    """
+    <div class="section-title">
+        🌦️ Current Conditions
+    </div>
+    """
 )
 
 m1, m2, m3, m4 = st.columns(4)
 
 metric_values = [
-    (f"{temperature:.0f}°C", "Temperature"),
-    (f"{humidity:.0f}%", "Humidity"),
-    (f"{wind:.0f} km/h", "Wind"),
-    (f"{uv_index:.0f}", "UV Index"),
+    (
+        f"{temperature:.0f}°C",
+        "Temperature"
+    ),
+    (
+        f"{humidity:.0f}%",
+        "Humidity"
+    ),
+    (
+        f"{wind:.0f} km/h",
+        "Wind"
+    ),
+    (
+        f"{uv_index:.0f}",
+        "UV Index"
+    ),
 ]
 
 for column, (value, label) in zip(
@@ -2224,7 +2358,7 @@ for column, (value, label) in zip(
 
     with column:
 
-        st.markdown(
+        render_html(
             f"""
             <div class="metric-box">
 
@@ -2237,8 +2371,7 @@ for column, (value, label) in zip(
                 </div>
 
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
 
 
@@ -2274,22 +2407,24 @@ with extra3:
 # ROUTE SECTION
 # ============================================================
 
-st.markdown(
-    '<div class="section-title">🚗 Route & Travel Weather</div>',
-    unsafe_allow_html=True
+render_html(
+    """
+    <div class="section-title">
+        🚗 Route & Travel Weather
+    </div>
+    """
 )
 
-st.markdown(
+render_html(
     """
     <div class="info-box">
 
-    Enter a destination to calculate a road route and
-    estimate weather conditions at several points along
-    your journey.
+        Enter a destination to calculate a road route
+        and estimate weather conditions at several
+        points along your journey.
 
     </div>
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 destination_text = st.text_input(
@@ -2383,8 +2518,6 @@ if calculate_route_clicked:
 
                 final_destination_name = dest_name
 
-            # Avoid calculating a route to the same
-            # coordinates.
             straight_distance = haversine_distance(
                 latitude,
                 longitude,
@@ -2483,11 +2616,12 @@ if route is not None:
         route["duration_s"]
     )
 
+
     # ========================================================
     # ROUTE HEADER
     # ========================================================
 
-    st.markdown(
+    render_html(
         f"""
         <div class="route-header">
 
@@ -2521,8 +2655,7 @@ if route is not None:
             </div>
 
         </div>
-        """,
-        unsafe_allow_html=True
+        """
     )
 
 
@@ -2556,6 +2689,7 @@ if route is not None:
                 coordinate[1],
                 coordinate[0]
             ]
+
             for coordinate in coordinates
         ]
 
@@ -2833,8 +2967,10 @@ if route is not None:
                     f"High-risk weather near "
                     f"{worst['place']}. "
                     f"{worst['condition']}, "
-                    f"rain {worst['rain_probability']:.0f}%, "
-                    f"wind {worst['wind']:.0f} km/h."
+                    f"rain "
+                    f"{worst['rain_probability']:.0f}%, "
+                    f"wind "
+                    f"{worst['wind']:.0f} km/h."
                 ),
                 route_context
             )
@@ -2878,7 +3014,7 @@ if route is not None:
 
         box_class = "good-box"
 
-    st.markdown(
+    render_html(
         f"""
         <div class="{box_class}">
 
@@ -2891,8 +3027,7 @@ if route is not None:
             </p>
 
         </div>
-        """,
-        unsafe_allow_html=True
+        """
     )
 
 
@@ -2919,24 +3054,27 @@ if route is not None:
 
         max_rain_point = max(
             route_weather,
-            key=lambda x: x["rain_probability"]
+            key=lambda x:
+                x["rain_probability"]
         )
 
         max_wind_point = max(
             route_weather,
-            key=lambda x: x["wind"]
+            key=lambda x:
+                x["wind"]
         )
 
         max_temp_point = max(
             route_weather,
-            key=lambda x: x["temperature"]
+            key=lambda x:
+                x["temperature"]
         )
 
         c1, c2, c3 = st.columns(3)
 
         with c1:
 
-            st.markdown(
+            render_html(
                 f"""
                 <div class="metric-box">
 
@@ -2951,13 +3089,12 @@ if route is not None:
                     </div>
 
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
 
         with c2:
 
-            st.markdown(
+            render_html(
                 f"""
                 <div class="metric-box">
 
@@ -2973,13 +3110,12 @@ if route is not None:
                     </div>
 
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
 
         with c3:
 
-            st.markdown(
+            render_html(
                 f"""
                 <div class="metric-box">
 
@@ -2994,8 +3130,7 @@ if route is not None:
                     </div>
 
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
 
 
@@ -3003,9 +3138,12 @@ if route is not None:
 # PERSONAL OUTDOOR ADVISOR
 # ============================================================
 
-st.markdown(
-    '<div class="section-title">🏃 Personal Outdoor Advisor</div>',
-    unsafe_allow_html=True
+render_html(
+    """
+    <div class="section-title">
+        🏃 Personal Outdoor Advisor
+    </div>
+    """
 )
 
 activity = st.selectbox(
@@ -3486,7 +3624,7 @@ if st.session_state.notifications_enabled:
 
     if alert["level"] == "danger":
 
-        st.markdown(
+        render_html(
             f"""
             <div class="danger-box">
 
@@ -3503,13 +3641,12 @@ if st.session_state.notifications_enabled:
                 </p>
 
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
 
     elif alert["level"] == "warning":
 
-        st.markdown(
+        render_html(
             f"""
             <div class="warning-box">
 
@@ -3526,8 +3663,7 @@ if st.session_state.notifications_enabled:
                 </p>
 
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
 
 
@@ -3535,7 +3671,7 @@ if st.session_state.notifications_enabled:
 # DATA SOURCES / FOOTER
 # ============================================================
 
-st.markdown(
+render_html(
     """
     <hr>
 
@@ -3547,24 +3683,27 @@ st.markdown(
     ">
 
         🌦️ <b>AI Personal Weather Advisor</b>
+
         <br><br>
 
         Weather data:
         Open-Meteo
+
         <br>
 
         Geocoding:
         Open-Meteo
+
         <br>
 
         Road routing:
         OSRM
+
         <br>
 
         Map data:
         OpenStreetMap
 
     </div>
-    """,
-    unsafe_allow_html=True
+    """
 )
